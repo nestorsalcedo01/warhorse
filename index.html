@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>War Horse: The Extended Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Visualization & Content Choices: 
+        1. Multiple Choice/True-False/Vocabulary -> Goal: Test factual recall and vocabulary. -> Viz/Presentation: Clickable options in cards. -> Interaction: On-click for answer check, color-coded feedback, explanation reveal, score update. -> Justification: Intuitive, immediate reinforcement. -> Library/Method: Vanilla JS, Tailwind.
+        2. Sentence Ordering -> Goal: Test plot chronology understanding. -> Viz/Presentation: Draggable text blocks, drop zone. -> Interaction: Drag-drop, "Check Order" button for validation. -> Justification: Tactile, engaging, requires deeper understanding. -> Library/Method: Vanilla JS, Tailwind.
+        3. Score Tracker -> Goal: User progress. -> Viz/Presentation: Fixed display. -> Interaction: Dynamic JS update. -> Justification: Clear performance feedback. -> Library/Method: Vanilla JS. -->
+    <style>
+        body {
+            font-family: 'Merriweather', serif;
+            background-color: #FDF8F0; /* Creamy White */
+        }
+        h1, h2, h3, h4 {
+            font-family: 'IM Fell English', serif;
+        }
+        .quiz-card {
+            background-color: #FFFFFF;
+            border: 1px solid #DED8CF; /* Light Tan */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .option {
+            border: 2px solid #E5E7EB;
+            transition: all 0.2s ease-in-out;
+        }
+        .option:hover {
+            border-color: #795548; /* Muted Brown */
+            background-color: #F9F6F2;
+        }
+        .option.selected {
+            border-color: #795548;
+            background-color: #F0EBE5;
+        }
+        .option.correct {
+            background-color: #D1FAE5; /* Green-100 */
+            border-color: #10B981; /* Green-500 */
+        }
+        .option.incorrect {
+            background-color: #FEE2E2; /* Red-100 */
+            border-color: #EF4444; /* Red-500 */
+        }
+        .explanation {
+            background-color: #F9FAFB;
+            border-left: 4px solid #DED8CF;
+        }
+        .draggable {
+            cursor: move;
+            user-select: none;
+            border: 2px dashed #DED8CF;
+        }
+        .draggable.dragging {
+            opacity: 0.5;
+        }
+        .drop-zone { /* Renamed from #drop-zone to class for multiple instances */
+            border: 2px dashed #795548;
+            min-height: 150px;
+            background-color: #F9F6F2;
+        }
+        .score-tracker {
+            background-color: #4E443C; /* Dark Brown */
+            color: #FDF8F0;
+            font-family: 'IM Fell English', serif;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-white py-6 shadow-md">
+        <div class="container mx-auto px-4">
+            <h1 class="text-4xl md:text-5xl text-center text-gray-900 tracking-wider">War Horse: The Extended Quiz</h1>
+            <p class="text-center text-gray-600 mt-2">Test your knowledge of Michael Morpurgo's epic story of loyalty, trust, and friendship.</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section id="part1" class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-300 pb-2">Part 1: Multiple Choice (1-10)</h2>
+            <div id="multiple-choice-container" class="space-y-8"></div>
+        </section>
+
+        <section id="part2" class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-300 pb-2">Part 2: True or False (11-20)</h2>
+            <div id="true-false-container" class="space-y-8"></div>
+        </section>
+
+        <section id="part3" class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-300 pb-2">Part 3: Order the Sentences (21-23)</h2>
+            <div id="sentence-ordering-container" class="space-y-8"></div>
+        </section>
+
+        <section id="part4" class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-300 pb-2">Part 4: Further Multiple Choice (24-58)</h2>
+            <div id="further-multiple-choice-container" class="space-y-8"></div>
+        </section>
+
+        <section id="part5" class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-300 pb-2">Part 5: Further True or False (59-88)</h2>
+            <div id="further-true-false-container" class="space-y-8"></div>
+        </section>
+        
+        <section id="part6" class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-300 pb-2">Part 6: Vocabulary Spotlight (89-98)</h2>
+            <div id="vocabulary-spotlight-container" class="space-y-8"></div>
+        </section>
+
+        <section id="part7" class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 border-b-2 border-gray-300 pb-2">Part 7: More Sentence Ordering (99-100)</h2>
+            <div id="more-sentence-ordering-container" class="space-y-8"></div>
+        </section>
+
+        <footer class="text-center mt-12">
+            <button id="reset-quiz" class="bg-[#795548] hover:bg-[#6D4C41] text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105">Reset Quiz</button>
+        </footer>
+
+    </main>
+
+    <div id="score-tracker" class="score-tracker fixed bottom-0 right-0 m-6 py-2 px-5 rounded-full shadow-xl text-lg">
+        Score: <span id="score">0</span> / <span id="total-questions">0</span>
+    </div>
+
+    <script>
+        const quizData = {
+            multipleChoice: [
+                { question: "What is the distinctive marking on Joey's forehead?", options: ["A white star", "A white blaze", "A white cross", "A white snip"], answer: "A white cross", explanation: "Joey is repeatedly described as having a remarkable white cross emblazoned on his forehead, making him easily identifiable." },
+                { question: "Who is Joey's first human companion and trainer?", options: ["Captain Nicholls", "Albert Narracott", "Albert's father", "Corporal Samuel Perkins"], answer: "Albert Narracott", explanation: "Albert forms an immediate and deep bond with Joey from the moment Joey arrives on the farm, and he lovingly trains him." },
+                { question: "Why does Albert's father sell Joey to the army?", options: ["He dislikes Joey and wants to get rid of him.", "He needs the money for the farm mortgage.", "Albert asked him to, wanting Joey to be a war hero.", "Captain Nicholls forced him to sell Joey."], answer: "He needs the money for the farm mortgage.", explanation: "Although Albert's father initially bought Joey partly out of spite and often treated him harshly, his primary motivation for selling Joey was his desperate need for money to save the farm." },
+                { question: "What is the name of the black stallion Joey befriends in the cavalry?", options: ["Warrior", "Black Jack", "Topthorn", "Midnight"], answer: "Topthorn", explanation: "Topthorn is the majestic black stallion who becomes Joey's closest companion and source of strength throughout much of the war." },
+                { question: "Which officer sketches Joey and promises Albert he will look after him?", options: ["Captain Stewart", "Major Martin", "Corporal Perkins", "Captain James Nicholls"], answer: "Captain James Nicholls", explanation: "Captain Nicholls, Joey's first officer, is an artist who sketches Joey and makes a heartfelt promise to Albert to care for him. The author's note at the beginning of the book mentions a painting by him." },
+                { question: "What is the name of the young French girl who cares for Joey and Topthorn when they are with the Germans?", options: ["Sophie", "Emilie", "Marie", "Annette"], answer: "Emilie", explanation: "Emilie, a frail but loving young girl, forms a deep bond with Joey and Topthorn on her grandfather's farm when the horses are being used by the German army." },
+                { question: "How is Joey rescued from No Man's Land?", options: ["Albert finds him and carries him back.", "A British soldier single-handedly cuts the wire.", "A German soldier and a British (Welsh) soldier decide his fate with a coin toss after both venture out to get him.", "He finds a gap in the wire and escapes on his own."], answer: "A German soldier and a British (Welsh) soldier decide his fate with a coin toss after both venture out to get him.", explanation: "This is a pivotal moment where a German and a Welsh soldier show shared humanity, venturing into No Man's Land and agreeing to a coin toss to determine who would take the injured Joey." },
+                { question: "What illness does Joey suffer from after being reunited with Albert at the veterinary hospital?", options: ["Pneumonia", "Tetanus (Lock-jaw)", "Influenza", "A broken leg"], answer: "Tetanus (Lock-jaw)", explanation: "Joey develops tetanus from his infected barbed wire wound, and his recovery is a testament to Albert's and the veterinary unit's dedicated care." },
+                { question: "For how much does Emilie's grandfather sell Joey to Albert?", options: ["Twenty-eight pounds", "One hundred pounds", "He gives Joey to Albert for free.", "One English penny and a promise."], answer: "One English penny and a promise.", explanation: "In a moving gesture, Emilie's grandfather sells Joey to Albert for a symbolic penny and the promise that Albert will love Joey and keep Emilie's memory alive." },
+                { question: "What is the name of the old farm horse who is Joey's first companion on the Narracott farm?", options: ["Bess", "Zoey", "Clover", "Duchess"], answer: "Zoey", explanation: "Zoey is the kind, older mare in the stable next to Joey's when he first arrives at the Narracott farm, offering him some initial comfort." }
+            ],
+            trueFalse: [
+                { question: "Joey is initially sold at auction for a very high price because of his fine breeding.", answer: false, explanation: "Joey, as a young colt, was difficult to sell and was eventually bought for a mere three guineas by Albert's father, who was drunk and partly motivated by spite." },
+                { question: "Albert's special whistle to call Joey mimics the sound of a cuckoo.", answer: false, explanation: "Albert's special whistle, which Joey always responds to, imitates the stuttering call of an owl." },
+                { question: "Captain Nicholls is killed in Joey's first cavalry charge.", answer: true, explanation: "Tragically, Captain Nicholls dies leading the charge, and Joey gallops on riderless for a short time." },
+                { question: "Topthorn dies from a shrapnel wound during a heavy bombardment.", answer: false, explanation: "Topthorn dies of heart failure, weakened by illness, overwork, and poor conditions, while resting in a wood with Friedrich." },
+                { question: "Emilie dies from pneumonia before the war ends.", answer: true, explanation: "Emilie, who was always frail, becomes very ill with pneumonia. Although she has a period of recovery, her grandfather later tells Albert that she faded away and died the year before the auction." },
+                { question: "Friedrich was a butcher before the war and longed to return to his shop.", answer: true, explanation: "Friedrich, the kind German soldier who befriends Joey and Topthorn, often spoke of his life as a butcher in Schleiden and his desire to return." },
+                { question: "The soldiers at the veterinary hospital, including Sergeant Thunder and Major Martin, pool their money to try and buy Joey at the auction.", answer: true, explanation: "In a remarkable show of affection for Joey and support for Albert, the entire unit, secretly including Major Martin, contributes money for Sergeant Thunder to bid on Joey." },
+                { question: "Joey is initially trained to pull a plough by Corporal Perkins.", answer: false, explanation: "Albert, with the help of old Zoey, trains Joey to pull the plough under pressure from his father. Corporal Perkins trains Joey as a cavalry horse." },
+                { question: "When Joey is found in No Man's Land, he is completely uninjured.", answer: false, explanation: "Joey is severely injured by barbed wire, with a deep gash on his foreleg, which later leads to tetanus." },
+                { question: "Albert marries Maisie Cobbledick, and she and Joey become the best of friends.", answer: false, explanation: "Albert does marry Maisie, but Joey states, 'I think she never took to me, nor I to her for that matter. Perhaps it was a feeling of mutual jealousy.'" }
+            ],
+            sentenceOrdering: [
+                { title: "Joey's Early Life", sentences: ["Joey is sold to Captain Nicholls by Albert's father.", "Albert and Joey form an unbreakable bond on the farm.", "Joey is bought by Albert's father at a horse sale.", "Albert makes his father promise never to hit Joey again after Joey kicks him."], correctOrder: ["Joey is bought by Albert's father at a horse sale.", "Albert and Joey form an unbreakable bond on the farm.", "Albert makes his father promise never to hit Joey again after Joey kicks him.", "Joey is sold to Captain Nicholls by Albert's father."] },
+                { title: "The Early War Years", sentences: ["Joey and Topthorn are captured by the Germans after a failed charge.", "Joey meets Topthorn during cavalry training.", "Captain Nicholls is killed in battle.", "Joey and Topthorn pull an ambulance cart for the Germans and are cared for by Emilie."], correctOrder: ["Joey meets Topthorn during cavalry training.", "Captain Nicholls is killed in battle.", "Joey and Topthorn are captured by the Germans after a failed charge.", "Joey and Topthorn pull an ambulance cart for the Germans and are cared for by Emilie."] },
+                { title: "The Final Chapters of the War", sentences: ["Joey is found in No Man's Land and rescued after a coin toss.", "Topthorn dies of heart failure, and Friedrich is killed shortly after.", "Emilie's grandfather buys Joey at the auction.", "Joey recovers from tetanus at the veterinary hospital with Albert's care."], correctOrder: ["Topthorn dies of heart failure, and Friedrich is killed shortly after.", "Joey is found in No Man's Land and rescued after a coin toss.", "Joey recovers from tetanus at the veterinary hospital with Albert's care.", "Emilie's grandfather buys Joey at the auction."] }
+            ],
+            furtherMultipleChoice: [
+                { question: "What job did Albert's friend David have before the war?", options: ["Farmer", "Blacksmith", "Fruit cart owner in London", "Stable boy"], answer: "Fruit cart owner in London", explanation: "Albert mentions that David had a fruit cart in London, outside Covent Garden, and was very proud of it." },
+                { question: "What type of bit does Joey particularly dislike during his cavalry training?", options: ["Snaffle bit", "Kimblewick bit", "Weymouth bit", "Pelham bit"], answer: "Weymouth bit", explanation: "Joey describes the Weymouth bit as uncomfortable and cumbersome, snagging the corners of his mouth." },
+                { question: "Who is the 'ex-jockey' that is Joey's rider during his initial cavalry training?", options: ["Captain Stewart", "Major Martin", "Corporal Samuel Perkins", "Sergeant Thunder"], answer: "Corporal Samuel Perkins", explanation: "Corporal Perkins is described as a hard, gritty little man, an ex-jockey whose pleasure seemed to be the power he could exert over a horse." },
+                { question: "What does Captain Nicholls often do when he visits Joey in the stables during training?", options: ["Sing to him", "Groom him meticulously", "Sketch him in a sketchbook", "Read him poetry"], answer: "Sketch him in a sketchbook", explanation: "Captain Nicholls would sit on an upturned bucket and sketch Joey, talking to him as he drew." },
+                { question: "What is Topthorn's distinguishing physical characteristic compared to Joey?", options: ["He has a white star", "He is much smaller", "He is half a hand or more taller and a sleek black stallion", "He has a very shaggy coat"], answer: "He is half a hand or more taller and a sleek black stallion", explanation: "Topthorn is described as a huge, sleek black stallion, half a hand or more taller than Joey." },
+                { question: "What event causes the mood on the ship to France to change from exuberant to sombre?", options: ["A fierce storm", "The sight of endless lines of wounded soldiers waiting to return to England", "An attack by an enemy submarine", "A speech by the commanding officer about the dangers ahead"], answer: "The sight of endless lines of wounded soldiers waiting to return to England", explanation: "The troopers fell silent and sombre as they walked past the unending lines of wounded waiting to board the ship back to England." },
+                { question: "What does Trooper Warren tell Joey he was before the war?", options: ["A schoolteacher", "An apprentice blacksmith", "A fisherman", "A shop assistant"], answer: "An apprentice blacksmith", explanation: "Trooper Warren confides in Joey that he was an apprentice blacksmith with his father before the war." },
+                { question: "What does a wounded German soldier hang around Joey's neck after Joey and Topthorn pull the ambulance cart through a barrage?", options: ["A silver locket", "A lucky horseshoe", "An Iron Cross", "A small German flag"], answer: "An Iron Cross", explanation: "A grateful, wounded German soldier hangs his muddied Iron Cross around Joey's neck, acknowledging their bravery." },
+                { question: "What is the name of the German officer who initially protests using Joey and Topthorn to pull carts but then supervises their first efforts?", options: ["Herr Müller", "Herr Schmidt", "Herr Hauptmann", "Herr Doktor"], answer: "Herr Hauptmann", explanation: "The tall, bandaged German officer, Herr Hauptmann, initially deems it a sacrilege but then helps ensure the horses are hitched and driven properly." },
+                { question: "What does Emilie make for Joey and Topthorn to keep the flies from bothering them?", options: ["Fly repellent ointment", "Special netted blankets", "Fringes to tie over their eyes", "She builds a shaded shelter"], answer: "Fringes to tie over their eyes", explanation: "Emilie thoughtfully makes them each a fringe to keep the flies away from their eyes during the summer." },
+                { question: "What is the primary reason the German artillery unit takes Joey and Topthorn from Emilie's farm?", options: ["They want them as officers' mounts", "They need more horses for their guns", "Emilie's grandfather offers them for sale", "They are escaping an enemy advance"], answer: "They need more horses for their guns", explanation: "The spectacled German officer states he has a gun team with only four horses and needs two more, selecting Joey and Topthorn for their strength." },
+                { question: "What is the name of the 'great hulk of a horse' in the German gun team with Joey and Topthorn?", options: ["Wilhelm", "Klaus", "Heinie", "Fritz"], answer: "Heinie", explanation: "Heinie is described as a great hulk of a horse, initially strong but who later weakens significantly." },
+                { question: "What is the distinctive feature of the horse named Coco in the German gun team?", options: ["He is pure white", "He has white patch-marks over his face", "He is exceptionally small", "He has a very calm temperament"], answer: "He has white patch-marks over his face", explanation: "Coco had a display of white patch-marks over his face that often caused amusement, though he had a nasty temper." },
+                { question: "Who is the only gunner in the German artillery team that shows consistent kindness to the horses?", options: ["The spectacled Major", "Rudi, the young soldier", "Mad old Friedrich", "Karl, Rudi's companion"], answer: "Mad old Friedrich", explanation: "Mad old Friedrich, the kind old soldier, is the one who consistently cares for the horses, sharing his bread and spending time with them." },
+                { question: "What new and terrifying war machine does Joey encounter shortly after Topthorn's death?", options: ["An airplane dropping bombs", "A flamethrower", "A tank", "A Zeppelin"], answer: "A tank", explanation: "Joey sees his first tank, described as a 'great grey lumbering monster,' which terrifies him and causes him to bolt." },
+                { question: "What injury does Joey sustain while fleeing in terror through the battlefield?", options: ["A shrapnel wound to his flank", "He is shot in the leg", "His foreleg is badly gashed by barbed wire", "He breaks a hoof on a shell crater"], answer: "His foreleg is badly gashed by barbed wire", explanation: "While stumbling through the dark and desolate landscape, Joey gets caught in barbed wire, severely injuring his foreleg." },
+                { question: "What is the nationality of the soldier who 'wins' Joey in the coin toss in No Man's Land?", options: ["English", "Scottish", "Irish", "Welsh"], answer: "Welsh", explanation: "The small soldier in khaki who engages with the German soldier and wins the coin toss is identified as a Welshman." },
+                { question: "What is Sergeant Thunder's nickname for Major Martin when he's not around?", options: ["The Professor", "Doc Martin", "The Miracle Worker", "He doesn't have one mentioned"], answer: "He doesn't have one mentioned", explanation: "While Sergeant Thunder is a distinct character, the text doesn't mention him having a specific nickname for Major Martin." },
+                { question: "What does Albert's father do that shows he has changed after Joey is sold?", options: ["He buys another horse exactly like Joey", "He stops his Tuesday drinking sessions and treats Albert's mother better", "He writes letters to Albert apologizing", "He sends money to Captain Nicholls for Joey's upkeep"], answer: "He stops his Tuesday drinking sessions and treats Albert's mother better", explanation: "Albert tells Joey that his father changed after Joey left, stopped drinking on Tuesdays, and treated his mother and Albert better." },
+                { question: "What is Maisie Cobbledick, Albert's future wife, particularly good at making?", options: ["Horse liniment", "Apple pie", "Bread and pasties", "Knitted scarves"], answer: "Bread and pasties", explanation: "Albert fondly tells Joey about Maisie's delicious bread and pasties, which even his mother praises." },
+                { question: "What is the final 'price' Emilie's grandfather asks for Joey from Albert?", options: ["All the money Albert has", "A promise to visit Emilie's grave", "One English penny and a promise to remember Emilie", "A share of the farm's profits"], answer: "One English penny and a promise to remember Emilie", explanation: "The grandfather's poignant request is a single penny and Albert's solemn promise to care for Joey and keep Emilie's memory alive." },
+                { question: "What instrument does Albert go back to playing in the village church after the war?", options: ["The organ", "The violin", "The tenor bell", "The flute"], answer: "The tenor bell", explanation: "The book mentions Albert's pride in ringing the tenor bell, and he returns to it after the war." },
+                { question: "What is the general feeling among the soldiers when the war finally ends?", options: ["Wild, ecstatic celebration", "Deep anger and resentment", "Profound relief and little joy", "A desire for immediate revenge"], answer: "Profound relief and little joy", explanation: "Joey observes that there was little joy or celebration, only a sense of profound relief that the war was finally over." },
+                { question: "What is the primary reason given by Major Martin for the army's decision to auction the horses in France?", options: ["The horses are too old to be useful anymore", "There is no space on the ships to take them back", "It's not considered worthwhile to transport sick or formerly sick horses back home", "The French government requested to buy them"], answer: "It's not considered worthwhile to transport sick or formerly sick horses back home", explanation: "Major Martin explains that the army decided it wasn't cost-effective to transport horses that were sick or had been sick back to Britain." },
+                { question: "Who is the 'butcher from Cambrai'?", options: ["A kind man who rescues horses", "A rival bidder against Sergeant Thunder for Joey at the auction", "Emilie's uncle", "A German soldier known for his cruelty"], answer: "A rival bidder against Sergeant Thunder for Joey at the auction", explanation: "The thin, wiry man with 'weasel eyes' who bids against Sergeant Thunder is identified by Albert as the butcher from Cambrai, implying a grim fate for horses he buys." },
+                { question: "What does Albert's mother often act as between Albert and his father?", options: ["A source of conflict", "A stern disciplinarian", "A go-between or negotiator", "Someone who takes sides with his father"], answer: "A go-between or negotiator", explanation: "Albert's mother often found herself arbitrating or negotiating between Albert and his father due to their strained communication." },
+                { question: "What does Captain Nicholls believe will be the decisive factor in the war, rather than cavalry charges?", options: ["Naval blockades", "Secret spy networks", "Machine-guns and artillery", "Hand-to-hand combat in trenches"], answer: "Machine-guns and artillery", explanation: "Captain Nicholls expresses his doubts to Joey about the effectiveness of cavalry against modern weaponry like machine-guns and artillery." },
+                { question: "What is the name of the farm where Albert and Joey grow up?", options: ["Green Gables Farm", "Manor Farm", "The Narracott Farm (no specific name given, just 'the farm')", "Oak Tree Farm"], answer: "The Narracott Farm (no specific name given, just 'the farm')", explanation: "The farm is consistently referred to simply as 'the farm' or the Narracott's farm, without a specific given name." },
+                { question: "What does Joey feel is the reason Maisie Cobbledick and he never 'took to' each other?", options: ["Maisie was afraid of horses", "Joey reminded Maisie of the war", "Mutual jealousy over Albert's affection", "Maisie preferred dogs"], answer: "Mutual jealousy over Albert's affection", explanation: "Joey reflects, 'Perhaps it was a feeling of mutual jealousy,' regarding his relationship with Maisie." },
+                { question: "What is the first sound Joey associates with Albert that helps him recognize him at the veterinary hospital?", options: ["Albert's singing voice", "Albert's laugh", "Albert's distinctive owl whistle", "The sound of Albert's footsteps"], answer: "Albert's distinctive owl whistle", explanation: "While Albert's voice first triggers recognition, it's his unique owl whistle that confirms Joey's hopes and leads to their definite reunion." },
+                { question: "What does Emilie's grandfather carry with him that helps him stand when he appears at the auction?", options: ["A rifle", "A tall staff", "A knobbly stick", "A crutch"], answer: "A knobbly stick", explanation: "Emilie's grandfather is described as leaning heavily on his stick, and later wagging his 'knobbly stick'." },
+                { question: "What is the reaction of the 'two golden Haflingers' to the work in the gun team?", options: ["They are lazy and refuse to pull", "They are constantly frightened and nervous", "They are pretty, invariably friendly, and work as hard as the rest", "They are aggressive towards the other horses"], answer: "They are pretty, invariably friendly, and work as hard as the rest", explanation: "Despite their diminutive size, the Haflingers are described as working hard and being a cheering sight." },
+                { question: "What does Albert's father bet with Farmer Easton about Joey?", options: ["That Joey can win a race", "That he can break Joey to saddle in a day", "That he can have Joey pulling a plough within a week", "That Joey is worth more than Easton's best horse"], answer: "That he can have Joey pulling a plough within a week", explanation: "Albert's father, in a drunken state, makes a bet that he can get Joey to plough within a week, which becomes the ultimatum for Albert." },
+                { question: "Who is the veterinary officer in charge at the hospital where Joey recovers from tetanus?", options: ["Captain Stewart", "Major Martin", "Lieutenant Wilkins", "Captain Davies"], answer: "Major Martin", explanation: "Major Martin is the skilled and ultimately compassionate head veterinary officer who oversees Joey's treatment for tetanus." },
+                { question: "What does Joey say is the 'only thing' he has against Albert?", options: ["Albert sometimes forgets his evening oats", "Albert doesn't let him gallop enough", "Albert is a good listener, but Joey never knows what Albert is thinking because he can't understand Joey's responses", "Albert's singing is off-key"], answer: "Albert is a good listener, but Joey never knows what Albert is thinking because he can't understand Joey's responses", explanation: "Joey muses, 'That's the only thing I've got against you, Joey, you're the best listener I've ever known, but I never know what the divil you're thinking.' (This is Albert speaking to Joey, from Joey's narration)." }
+            ],
+            furtherTrueFalse: [
+                { question: "Albert's father bought Joey primarily because he felt sorry for the young colt.", answer: false, explanation: "Albert's father bought Joey impulsively while drunk, partly to spite Farmer Easton, not out of pity." },
+                { question: "Joey and Topthorn are stabled together on the ship to France.", answer: true, explanation: "The narrative mentions they were stabled side by side on the boat, which helped Joey during the stormy crossing." },
+                { question: "Trooper Warren is an expert horseman who handles Joey with great skill.", answer: false, explanation: "Trooper Warren is described as not a good horseman, riding tense and heavy, though he is kind in his care." },
+                { question: "Emilie's farm is located in England, near Albert's home.", answer: false, explanation: "Emilie's farm is in France, where Joey and Topthorn are taken after being captured by the Germans." },
+                { question: "The German soldiers who first capture Joey and Topthorn are cruel and abusive.", answer: false, explanation: "The initial German soldiers are nervous, and then Herr Hauptmann ensures the horses are treated with respect and care." },
+                { question: "Joey and Topthorn are used by the Germans exclusively for cavalry charges.", answer: false, explanation: "They are primarily used by the Germans to pull an ambulance cart and later, heavy artillery guns." },
+                { question: "Emilie's grandfather is a wealthy landowner with many servants.", answer: false, explanation: "Emilie's grandfather appears to be a simple farmer, working the land himself with Emilie, and is not depicted as wealthy." },
+                { question: "The 'spectacled officer' in the German artillery is known for his kindness to horses.", answer: false, explanation: "The spectacled officer (Major) is portrayed as stern and prioritizing the gun's efficiency over the horses' welfare, though not overtly cruel." },
+                { question: "Joey is the only horse to survive the charge into the barbed wire where Captain Stewart is captured.", answer: false, explanation: "Both Joey and Topthorn survive the charge and make it through the wire with their riders before being captured." },
+                { question: "The coin toss in No Man's Land is suggested by the Welsh soldier.", answer: false, explanation: "The German soldier suggests the coin toss as a fair way to decide who should take Joey, to avoid any loss of pride for either side." },
+                { question: "Sergeant Thunder is initially against the idea of trying to save Joey from tetanus.", answer: false, explanation: "While initially acknowledging the grim prognosis, Sergeant Thunder quickly supports giving Joey a chance and guarantees the unit's full effort." },
+                { question: "Albert finds Joey by recognizing his distinctive neigh in the veterinary hospital.", answer: false, explanation: "Albert recognizes Joey through a combination of his voice, his distinctive owl whistle, and then confirming Joey's physical markings." },
+                { question: "Major Martin personally contributes his own saved pay to the fund to buy Joey at the auction.", answer: true, explanation: "Sergeant Thunder reveals to the men that Major Martin knew about their plan and had given every penny of his saved pay to help." },
+                { question: "Emilie's grandfather immediately recognizes Albert as Joey's original owner at the auction.", answer: false, explanation: "He recognizes Joey as 'Emilie's horse.' The connection to Albert is explained later by Major Martin and Sergeant Thunder." },
+                { question: "The story ends with Joey living out his days peacefully with Albert and Maisie, completely free from work.", answer: false, explanation: "Joey returns to work on the land with old Zoey, and Albert takes over the farm again." },
+                { question: "Corporal Perkins uses the whip and spurs on Joey primarily for show, not to inflict pain.", answer: false, explanation: "Joey states that with Corporal Perkins, 'the whip and the spurs were not just for show,' indicating they were used to enforce discipline." },
+                { question: "Captain Stewart's horse, Topthorn, is initially hostile towards Joey.", answer: false, explanation: "While they have a brief moment of rivalry during the charge, they are quickly stabled together and form a deep bond." },
+                { question: "The first sight of the war for the newly arrived British troops is a glorious victory parade.", answer: false, explanation: "The first significant sight related to the war's reality is the 'unending lines of wounded waiting to board the ship back to England.'" },
+                { question: "Trooper Warren's letters from home are mostly about battles and military strategy.", answer: false, explanation: "The letters Trooper Warren reads to Joey are from his mother and contain news about home, family, and local village life." },
+                { question: "The German doctor at the field hospital believes cavalry horses are too valuable to be used for pulling ambulance carts.", answer: false, explanation: "The German doctor pragmatically insists on using Joey and Topthorn for ambulance work due to the desperate need for transport for the wounded." },
+                { question: "Emilie is perfectly healthy until she suddenly falls ill with pneumonia.", answer: false, explanation: "Emilie is described as a 'tiny, frail creature,' and her grandfather later says she was a 'sick child anyway,' suggesting pre-existing frailty." },
+                { question: "The German artillery soldiers treat their horses with the same care and affection as Emilie did.", answer: false, explanation: "The artillerymen are described as driven by 'fearful compulsion,' displaying little care for the horses' welfare beyond their ability to pull the guns." },
+                { question: "Friedrich believes he is the only 'mad' one in his regiment.", answer: false, explanation: "Friedrich tells Joey and Topthorn, 'I tell you that I am the only sane man in the regiment. It's the others that are mad, but they don't know it.'" },
+                { question: "When Joey is trapped in No Man's Land, both British and German soldiers immediately start shooting at him.", answer: false, explanation: "While there is gunfire in the area, the soldiers in the trenches closest to Joey are ordered not to shoot and instead become curious and try to coax him." },
+                { question: "Albert joined the Veterinary Corps specifically hoping to find Joey.", answer: true, explanation: "Albert tells David, 'That's what I came all this way for and I'm going to find him,' referring to Joey." },
+                { question: "The auction of army horses in France is a common practice to reward soldiers with a horse to take home.", answer: false, explanation: "The auction is a measure to dispose of horses deemed not worthwhile to transport back, often meaning they go to butchers." },
+                { question: "Emilie's grandfather outbids the butcher from Cambrai by only one pound.", answer: true, explanation: "The butcher's final bid is twenty-seven pounds. Emilie's grandfather bids twenty-eight and declares he will go as high as needed, effectively ending the bidding." },
+                { question: "Albert's father is overjoyed and proud when Albert brings Joey back home.", answer: true, explanation: "Joey narrates that his aging father 'doted on me now almost as much as on his own grandchildren.'" },
+                { question: "The narrative suggests that the war brought about positive changes in Albert's father's character.", answer: true, explanation: "Albert tells Joey that his father became a different, kinder man after Joey left, stopping his drinking and treating his family better." },
+                { question: "Joey's story is primarily about the glory and heroism of cavalry warfare.", answer: false, explanation: "The story is a poignant depiction of the horrors of war, the suffering of animals, and the enduring bonds of love and loyalty, rather than a glorification of warfare." }
+            ],
+            vocabularySpotlight: [
+                { question: "In Chapter 1, Joey is described as a 'gangling, leggy colt.' What does 'gangling' most nearly mean?", options: ["Strong and muscular", "Awkwardly tall and clumsy", "Small and energetic", "Graceful and swift"], answer: "Awkwardly tall and clumsy", explanation: "'Gangling' refers to someone, often a youth or young animal, who is tall, thin, and moves awkwardly." },
+                { question: "The 'terrible hubbub of the auction ring' (Chapter 1) refers to:", options: ["A quiet, orderly sale", "A chaotic and noisy confusion", "A celebratory gathering", "A secret meeting"], answer: "A chaotic and noisy confusion", explanation: "'Hubbub' means a loud, confused noise, typically caused by a crowd of people." },
+                { question: "When Albert's father calls Joey 'my little firebrand' (Chapter 1), he means Joey is:", options: ["Very calm and gentle", "A person (or animal) who is passionate and energetic, sometimes causing trouble", "Slow and lazy", "Easily frightened"], answer: "A person (or animal) who is passionate and energetic, sometimes causing trouble", explanation: "A 'firebrand' is someone who is very passionate about a cause or who incites unrest; here it implies Joey is spirited and a fighter." },
+                { question: "Corporal Perkins's training methods were 'cumbersome' for Joey (Chapter 5). 'Cumbersome' means:", options: ["Light and easy to manage", "Efficient and quick", "Large, heavy, or difficult to carry or use; unwieldy", "Comfortable and soothing"], answer: "Large, heavy, or difficult to carry or use; unwieldy", explanation: "The Weymouth bit was 'cumbersome,' meaning it was awkward and difficult for Joey to manage." },
+                { question: "The soldiers on the ship to France showed 'an air of great exuberance' (Chapter 6). 'Exuberance' is:", options: ["Deep sadness and gloom", "Fear and anxiety", "The quality of being full of energy, excitement, and cheerfulness", "Quiet contemplation"], answer: "The quality of being full of energy, excitement, and cheerfulness", explanation: "'Exuberance' describes a state of lively and uninhibited enthusiasm." },
+                { question: "After seeing the wounded, the troopers fell 'silent and sombre' (Chapter 6). 'Sombre' means:", options: ["Joyful and loud", "Dark or dull in color or tone; gloomy", "Excited and agitated", "Playful and lighthearted"], answer: "Dark or dull in color or tone; gloomy", explanation: "'Sombre' indicates a dark, gloomy, or depressed mood or atmosphere." },
+                { question: "During the winter, Trooper Warren's care for Joey was 'meticulous' (Chapter 7). 'Meticulous' means:", options: ["Careless and rushed", "Showing great attention to detail; very careful and precise", "Rough and basic", "Occasional and inconsistent"], answer: "Showing great attention to detail; very careful and precise", explanation: "'Meticulous' care implies that Trooper Warren was very careful and paid close attention to every detail of Joey's well-being." },
+                { question: "The charge into the barbed wire resulted in 'carnage' (Chapter 8). 'Carnage' refers to:", options: ["A great victory", "An orderly retreat", "The killing of a large number of people or animals", "A minor skirmish"], answer: "The killing of a large number of people or animals", explanation: "'Carnage' describes widespread slaughter and bloodshed, fitting the scene of the disastrous cavalry charge." },
+                { question: "Emilie would 'prattle on merrily' to the horses (Chapter 10). To 'prattle' means to:", options: ["Speak in a deep, serious voice", "Sing mournful songs", "Talk at length in a foolish or inconsequential way", "Give strict commands"], answer: "Talk at length in a foolish or inconsequential way", explanation: "'Prattle' means to talk in a long-winded, aimless, or trivial way, often associated with children's chatter." },
+                { question: "After the war, Albert's father 'doted on' Joey (Chapter 21). To 'dote on' someone means to:", options: ["Ignore them completely", "Be extremely and uncritically fond of them", "Discipline them harshly", "Be afraid of them"], answer: "Be extremely and uncritically fond of them", explanation: "To 'dote on' someone (or an animal) is to show excessive love and fondness for them." }
+            ],
+            moreSentenceOrdering: [
+                { title: "Joey with the Germans", sentences: ["Joey and Topthorn are taken by an artillery unit from Emilie's farm.", "Herr Hauptmann ensures Joey and Topthorn are cared for after their capture.", "Emilie and her grandfather lovingly care for Joey and Topthorn.", "Friedrich becomes a kind companion to Joey and Topthorn while they pull the ammunition cart."], correctOrder: ["Herr Hauptmann ensures Joey and Topthorn are cared for after their capture.", "Emilie and her grandfather lovingly care for Joey and Topthorn.", "Joey and Topthorn are taken by an artillery unit from Emilie's farm.", "Friedrich becomes a kind companion to Joey and Topthorn while they pull the ammunition cart."] },
+                { title: "Joey's Journey to Reunion", sentences: ["Albert recognizes Joey at the veterinary hospital using his owl whistle.", "Emilie's grandfather sells Joey to Albert for a penny and a promise.", "The veterinary unit pools their money to try and buy Joey at the auction.", "Joey is rescued from No Man's Land by a Welsh and a German soldier."], correctOrder: ["Joey is rescued from No Man's Land by a Welsh and a German soldier.", "Albert recognizes Joey at the veterinary hospital using his owl whistle.", "The veterinary unit pools their money to try and buy Joey at the auction.", "Emilie's grandfather sells Joey to Albert for a penny and a promise."] }
+            ]
+        };
+
+        let score = 0;
+        const totalQuestions = quizData.multipleChoice.length + quizData.trueFalse.length + quizData.sentenceOrdering.length + quizData.furtherMultipleChoice.length + quizData.furtherTrueFalse.length + quizData.vocabularySpotlight.length + quizData.moreSentenceOrdering.length;
+        document.getElementById('total-questions').textContent = totalQuestions;
+        const scoreElement = document.getElementById('score');
+        let questionCounter = 0;
+
+        function createQuestionCard(questionText, questionNumber) {
+            const card = document.createElement('div');
+            card.className = 'quiz-card p-6 rounded-lg';
+            card.innerHTML = `<h3 class="text-xl font-bold mb-4">${questionNumber}. ${questionText}</h3>`;
+            
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'space-y-3';
+            card.appendChild(optionsContainer);
+            return { card, optionsContainer };
+        }
+
+        function createMultipleChoiceQuestion(qData, containerId, isVocabulary = false) {
+            const container = document.getElementById(containerId);
+            questionCounter++;
+            const questionId = `mcq-${questionCounter}`;
+
+            const { card, optionsContainer } = createQuestionCard(qData.question, questionCounter);
+
+            qData.options.forEach(optionText => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option p-3 rounded-md cursor-pointer';
+                optionDiv.textContent = optionText;
+                optionDiv.addEventListener('click', () => handleOptionSelect(optionDiv, qData.answer, questionId, qData.explanation, 'multipleChoice'));
+                optionsContainer.appendChild(optionDiv);
+            });
+            container.appendChild(card);
+        }
+
+        function createTrueFalseQuestion(qData, containerId) {
+            const container = document.getElementById(containerId);
+            questionCounter++;
+            const questionId = `tfq-${questionCounter}`;
+
+            const { card, optionsContainer } = createQuestionCard(qData.question, questionCounter);
+
+            ['True', 'False'].forEach(optionText => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option p-3 rounded-md cursor-pointer';
+                optionDiv.textContent = optionText;
+                optionDiv.addEventListener('click', () => handleOptionSelect(optionDiv, qData.answer, questionId, qData.explanation, 'trueFalse'));
+                optionsContainer.appendChild(optionDiv);
+            });
+            container.appendChild(card);
+        }
+        
+        function handleOptionSelect(selectedDiv, correctAnswer, questionId, explanation, questionType) {
+            const parentOptionsContainer = selectedDiv.parentElement;
+            if (parentOptionsContainer.dataset.answered === 'true') return;
+
+            parentOptionsContainer.dataset.answered = 'true';
+            const selectedAnswerText = selectedDiv.textContent;
+            let isCorrect = false;
+
+            if (questionType === 'multipleChoice') {
+                isCorrect = (selectedAnswerText === correctAnswer);
+            } else if (questionType === 'trueFalse') {
+                isCorrect = (selectedAnswerText === 'True' && correctAnswer === true) || (selectedAnswerText === 'False' && correctAnswer === false);
+            }
+            
+            if (isCorrect) {
+                selectedDiv.classList.add('correct');
+                score++;
+            } else {
+                selectedDiv.classList.add('incorrect');
+                Array.from(parentOptionsContainer.children).forEach(child => {
+                    if (questionType === 'multipleChoice' && child.textContent === correctAnswer) {
+                        child.classList.add('correct');
+                    } else if (questionType === 'trueFalse' && ((child.textContent === 'True' && correctAnswer === true) || (child.textContent === 'False' && correctAnswer === false))) {
+                        child.classList.add('correct');
+                    }
+                });
+            }
+            
+            scoreElement.textContent = score;
+            
+            const explanationDiv = document.createElement('div');
+            explanationDiv.className = 'explanation p-4 mt-4 rounded-md';
+            explanationDiv.innerHTML = `<strong class="text-[#795548]">Explanation:</strong> ${explanation}`;
+            parentOptionsContainer.parentElement.appendChild(explanationDiv);
+        }
+
+        function createSentenceOrderingQuestion(qData, containerId) {
+            const container = document.getElementById(containerId);
+            questionCounter++;
+            const questionId = `soq-${questionCounter}`;
+
+            const card = document.createElement('div');
+            card.className = 'quiz-card p-6 rounded-lg';
+            card.innerHTML = `<h3 class="text-xl font-bold mb-2">${questionCounter}. ${qData.title}</h3>
+                              <p class="text-gray-600 mb-4">Drag and drop the sentences into the correct chronological order.</p>`;
+            
+            const sourceContainer = document.createElement('div');
+            sourceContainer.className = 'mb-4 space-y-2 source-draggable-area';
+            sourceContainer.innerHTML = `<h4 class="font-bold text-sm text-gray-500">SENTENCES TO ORDER:</h4>`;
+
+            const dropZone = document.createElement('div');
+            dropZone.id = `drop-zone-${questionId}`;
+            dropZone.className = 'p-4 rounded-lg space-y-2 drop-zone';
+            
+            qData.sentences.slice().sort(() => Math.random() - 0.5).forEach((sentence, s_index) => {
+                const draggable = document.createElement('div');
+                draggable.className = 'draggable bg-white p-3 rounded-md shadow-sm';
+                draggable.draggable = true;
+                draggable.textContent = sentence;
+                draggable.id = `${questionId}-item-${s_index}`;
+                sourceContainer.appendChild(draggable);
+            });
+
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'mt-4';
+            const checkButton = document.createElement('button');
+            checkButton.textContent = 'Check Order';
+            checkButton.className = 'bg-[#795548] hover:bg-[#6D4C41] text-white font-bold py-2 px-4 rounded-lg';
+            buttonContainer.appendChild(checkButton);
+
+            card.appendChild(sourceContainer);
+            card.appendChild(dropZone);
+            card.appendChild(buttonContainer);
+            container.appendChild(card);
+
+            let draggedItem = null;
+
+            card.addEventListener('dragstart', (e) => {
+                if (e.target.classList.contains('draggable')) {
+                    draggedItem = e.target;
+                    setTimeout(() => { e.target.classList.add('dragging'); }, 0);
+                }
+            });
+            card.addEventListener('dragend', (e) => {
+                if (draggedItem && e.target.classList.contains('draggable')) {
+                    e.target.classList.remove('dragging');
+                }
+                draggedItem = null;
+            });
+
+            [sourceContainer, dropZone].forEach(area => {
+                area.addEventListener('dragover', (e) => e.preventDefault());
+                area.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedItem) {
+                        const targetArea = e.currentTarget;
+                        const afterElement = getDragAfterElement(targetArea, e.clientY);
+                        if (afterElement == null) {
+                            targetArea.appendChild(draggedItem);
+                        } else {
+                            targetArea.insertBefore(draggedItem, afterElement);
+                        }
+                        draggedItem.classList.remove('dragging');
+                    }
+                });
+            });
+            
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('.draggable:not(.dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+            
+            checkButton.addEventListener('click', () => {
+                if (card.dataset.answered === 'true') return;
+                card.dataset.answered = 'true';
+                
+                const droppedItems = Array.from(dropZone.children).map(child => child.textContent);
+                const isCorrect = JSON.stringify(droppedItems) === JSON.stringify(qData.correctOrder);
+                
+                checkButton.disabled = true;
+                card.querySelectorAll('.draggable').forEach(el => el.draggable = false);
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'p-4 mt-4 rounded-md';
+                
+                if (isCorrect) {
+                    score++;
+                    scoreElement.textContent = score;
+                    resultDiv.classList.add('bg-green-100', 'border-l-4', 'border-green-500', 'text-green-700');
+                    resultDiv.innerHTML = `<strong class="font-bold">Correct!</strong> You've ordered the events perfectly.`;
+                } else {
+                    resultDiv.classList.add('bg-red-100', 'border-l-4', 'border-red-500', 'text-red-700');
+                    let correctOrderHtml = qData.correctOrder.map((item, i) => `<li>${i+1}. ${item}</li>`).join('');
+                    resultDiv.innerHTML = `<strong class="font-bold">Not quite.</strong> Here is the correct order: <ol class="list-decimal list-inside mt-2">${correctOrderHtml}</ol>`;
+                }
+                card.appendChild(resultDiv);
+            });
+        }
+
+        function buildQuiz() {
+            questionCounter = 0;
+            quizData.multipleChoice.forEach(q => createMultipleChoiceQuestion(q, 'multiple-choice-container'));
+            quizData.trueFalse.forEach(q => createTrueFalseQuestion(q, 'true-false-container'));
+            quizData.sentenceOrdering.forEach(q => createSentenceOrderingQuestion(q, 'sentence-ordering-container'));
+            quizData.furtherMultipleChoice.forEach(q => createMultipleChoiceQuestion(q, 'further-multiple-choice-container'));
+            quizData.furtherTrueFalse.forEach(q => createTrueFalseQuestion(q, 'further-true-false-container'));
+            quizData.vocabularySpotlight.forEach(q => createMultipleChoiceQuestion(q, 'vocabulary-spotlight-container', true));
+            quizData.moreSentenceOrdering.forEach(q => createSentenceOrderingQuestion(q, 'more-sentence-ordering-container'));
+        }
+        
+        document.getElementById('reset-quiz').addEventListener('click', () => {
+             document.getElementById('multiple-choice-container').innerHTML = '';
+             document.getElementById('true-false-container').innerHTML = '';
+             document.getElementById('sentence-ordering-container').innerHTML = '';
+             document.getElementById('further-multiple-choice-container').innerHTML = '';
+             document.getElementById('further-true-false-container').innerHTML = '';
+             document.getElementById('vocabulary-spotlight-container').innerHTML = '';
+             document.getElementById('more-sentence-ordering-container').innerHTML = '';
+             score = 0;
+             scoreElement.textContent = score;
+             buildQuiz();
+        });
+
+        buildQuiz();
+    </script>
+</body>
+</html>
