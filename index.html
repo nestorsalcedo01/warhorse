@@ -10,19 +10,19 @@
     <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
     <!-- Visualization & Content Choices: 
         1. Multiple Choice/True-False/Vocabulary -> Goal: Test factual recall and vocabulary. -> Viz/Presentation: Clickable options in cards. -> Interaction: On-click for answer check, color-coded feedback, explanation reveal, score update. -> Justification: Intuitive, immediate reinforcement. -> Library/Method: Vanilla JS, Tailwind.
-        2. Sentence Ordering -> Goal: Test plot chronology understanding. -> Viz/Presentation: Draggable text blocks, drop zone. -> Interaction: Drag-drop, "Check Order" button for validation. -> Justification: Tactile, engaging, requires deeper understanding. -> Library/Method: Vanilla JS, Tailwind.
+        2. Sentence Ordering -> Goal: Test plot chronology understanding. -> Viz/Presentation: Draggable text blocks, drop zone. -> Interaction: Mouse drag-drop & Touch drag-drop, "Check Order" button for validation. -> Justification: Tactile, engaging, requires deeper understanding, now mobile-friendly. -> Library/Method: Vanilla JS, Tailwind.
         3. Score Tracker -> Goal: User progress. -> Viz/Presentation: Fixed display. -> Interaction: Dynamic JS update. -> Justification: Clear performance feedback. -> Library/Method: Vanilla JS. -->
     <style>
         body {
             font-family: 'Merriweather', serif;
-            background-color: #FDF8F0; /* Creamy White */
+            background-color: #FDF8F0; 
         }
         h1, h2, h3, h4 {
             font-family: 'IM Fell English', serif;
         }
         .quiz-card {
             background-color: #FFFFFF;
-            border: 1px solid #DED8CF; /* Light Tan */
+            border: 1px solid #DED8CF; 
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
         .option {
@@ -30,7 +30,7 @@
             transition: all 0.2s ease-in-out;
         }
         .option:hover {
-            border-color: #795548; /* Muted Brown */
+            border-color: #795548; 
             background-color: #F9F6F2;
         }
         .option.selected {
@@ -38,12 +38,12 @@
             background-color: #F0EBE5;
         }
         .option.correct {
-            background-color: #D1FAE5; /* Green-100 */
-            border-color: #10B981; /* Green-500 */
+            background-color: #D1FAE5; 
+            border-color: #10B981; 
         }
         .option.incorrect {
-            background-color: #FEE2E2; /* Red-100 */
-            border-color: #EF4444; /* Red-500 */
+            background-color: #FEE2E2; 
+            border-color: #EF4444; 
         }
         .explanation {
             background-color: #F9FAFB;
@@ -54,18 +54,29 @@
             user-select: none;
             border: 2px dashed #DED8CF;
         }
-        .draggable.dragging {
+        .draggable.dragging, .draggable.touch-dragging {
             opacity: 0.5;
+            /* Consider adding a border or shadow to indicate it's being actively dragged via touch */
+            /* box-shadow: 0px 0px 15px rgba(0,0,0,0.2); */
         }
-        .drop-zone { /* Renamed from #drop-zone to class for multiple instances */
+        .drop-zone {
             border: 2px dashed #795548;
             min-height: 150px;
             background-color: #F9F6F2;
         }
         .score-tracker {
-            background-color: #4E443C; /* Dark Brown */
+            background-color: #4E443C; 
             color: #FDF8F0;
             font-family: 'IM Fell English', serif;
+        }
+        /* Prevent text selection during drag on mobile */
+        .no-select {
+            -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-user-select: none;   /* Safari */
+            -khtml-user-select: none;    /* Konqueror HTML */
+            -moz-user-select: none;      /* Old versions of Firefox */
+            -ms-user-select: none;       /* Internet Explorer/Edge */
+            user-select: none;           /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
         }
     </style>
 </head>
@@ -338,20 +349,20 @@
             const card = document.createElement('div');
             card.className = 'quiz-card p-6 rounded-lg';
             card.innerHTML = `<h3 class="text-xl font-bold mb-2">${questionCounter}. ${qData.title}</h3>
-                              <p class="text-gray-600 mb-4">Drag and drop the sentences into the correct chronological order.</p>`;
+                              <p class="text-gray-600 mb-4">Drag and drop the sentences into the correct chronological order. (Works with mouse and touch)</p>`;
             
             const sourceContainer = document.createElement('div');
-            sourceContainer.className = 'mb-4 space-y-2 source-draggable-area';
+            sourceContainer.className = 'mb-4 space-y-2 source-draggable-area no-select';
             sourceContainer.innerHTML = `<h4 class="font-bold text-sm text-gray-500">SENTENCES TO ORDER:</h4>`;
 
             const dropZone = document.createElement('div');
             dropZone.id = `drop-zone-${questionId}`;
-            dropZone.className = 'p-4 rounded-lg space-y-2 drop-zone';
+            dropZone.className = 'p-4 rounded-lg space-y-2 drop-zone no-select';
             
             qData.sentences.slice().sort(() => Math.random() - 0.5).forEach((sentence, s_index) => {
                 const draggable = document.createElement('div');
-                draggable.className = 'draggable bg-white p-3 rounded-md shadow-sm';
-                draggable.draggable = true;
+                draggable.className = 'draggable bg-white p-3 rounded-md shadow-sm no-select';
+                draggable.draggable = true; 
                 draggable.textContent = sentence;
                 draggable.id = `${questionId}-item-${s_index}`;
                 sourceContainer.appendChild(draggable);
@@ -369,40 +380,110 @@
             card.appendChild(buttonContainer);
             container.appendChild(card);
 
-            let draggedItem = null;
+            let mouseDraggedItem = null; 
+            let touchDraggedItem = null;
+            let initialX, initialY, currentX, currentY, xOffset = 0, yOffset = 0;
+
 
             card.addEventListener('dragstart', (e) => {
-                if (e.target.classList.contains('draggable')) {
-                    draggedItem = e.target;
+                if (e.target.classList.contains('draggable') && !checkButton.disabled) {
+                    mouseDraggedItem = e.target;
                     setTimeout(() => { e.target.classList.add('dragging'); }, 0);
                 }
             });
             card.addEventListener('dragend', (e) => {
-                if (draggedItem && e.target.classList.contains('draggable')) {
+                if (mouseDraggedItem && e.target.classList.contains('draggable')) {
                     e.target.classList.remove('dragging');
                 }
-                draggedItem = null;
+                mouseDraggedItem = null;
             });
 
             [sourceContainer, dropZone].forEach(area => {
-                area.addEventListener('dragover', (e) => e.preventDefault());
+                area.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (!checkButton.disabled) {
+                       const afterElement = getDragAfterElement(area, e.clientY);
+                       const draggable = document.querySelector('.dragging');
+                       if (draggable && draggable !== afterElement) {
+                           if (afterElement == null) {
+                               area.appendChild(draggable);
+                           } else {
+                               area.insertBefore(draggable, afterElement);
+                           }
+                       }
+                    }
+                });
                 area.addEventListener('drop', (e) => {
                     e.preventDefault();
-                    if (draggedItem) {
-                        const targetArea = e.currentTarget;
-                        const afterElement = getDragAfterElement(targetArea, e.clientY);
-                        if (afterElement == null) {
-                            targetArea.appendChild(draggedItem);
-                        } else {
-                            targetArea.insertBefore(draggedItem, afterElement);
-                        }
-                        draggedItem.classList.remove('dragging');
+                    if (mouseDraggedItem && !checkButton.disabled) {
+                       
+                        mouseDraggedItem.classList.remove('dragging');
                     }
                 });
             });
             
+            card.addEventListener('touchstart', (e) => {
+                const touchedEl = e.target.closest('.draggable');
+                if (touchedEl && !checkButton.disabled) {
+                    touchDraggedItem = touchedEl;
+                    touchDraggedItem.classList.add('touch-dragging'); 
+                    
+                    const rect = touchDraggedItem.getBoundingClientRect();
+                    xOffset = e.touches[0].clientX - rect.left;
+                    yOffset = e.touches[0].clientY - rect.top;
+
+                    initialX = e.touches[0].clientX - xOffset;
+                    initialY = e.touches[0].clientY - yOffset;
+                    
+                    document.body.classList.add('no-select'); 
+                }
+            }, { passive: true }); 
+
+            document.addEventListener('touchmove', (e) => {
+                if (touchDraggedItem && !checkButton.disabled) {
+                    e.preventDefault(); 
+                    currentX = e.touches[0].clientX - xOffset;
+                    currentY = e.touches[0].clientY - yOffset;
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchend', (e) => {
+                if (touchDraggedItem && !checkButton.disabled) {
+                    touchDraggedItem.classList.remove('touch-dragging');
+                    document.body.classList.remove('no-select');
+
+                    const touchX = e.changedTouches[0].clientX;
+                    const touchY = e.changedTouches[0].clientY;
+                    const elementUnderTouch = document.elementFromPoint(touchX, touchY);
+                    
+                    let targetContainer = null;
+                    if (elementUnderTouch) {
+                        const closestDropZone = elementUnderTouch.closest('.drop-zone');
+                        const closestSourceArea = elementUnderTouch.closest('.source-draggable-area');
+
+                        if (closestDropZone) {
+                            targetContainer = closestDropZone;
+                        } else if (closestSourceArea) {
+                            targetContainer = closestSourceArea;
+                        } else if (elementUnderTouch.classList.contains('draggable') && elementUnderTouch.parentElement) {
+                             targetContainer = elementUnderTouch.parentElement;
+                        }
+                    }
+
+                    if (targetContainer && (targetContainer.classList.contains('drop-zone') || targetContainer.classList.contains('source-draggable-area'))) {
+                        const afterElement = getDragAfterElement(targetContainer, touchY);
+                        if (afterElement == null) {
+                            targetContainer.appendChild(touchDraggedItem);
+                        } else {
+                            targetContainer.insertBefore(touchDraggedItem, afterElement);
+                        }
+                    }
+                    touchDraggedItem = null;
+                }
+            });
+            
             function getDragAfterElement(container, y) {
-                const draggableElements = [...container.querySelectorAll('.draggable:not(.dragging)')];
+                const draggableElements = [...container.querySelectorAll('.draggable:not(.dragging):not(.touch-dragging)')];
                 return draggableElements.reduce((closest, child) => {
                     const box = child.getBoundingClientRect();
                     const offset = y - box.top - box.height / 2;
@@ -422,7 +503,10 @@
                 const isCorrect = JSON.stringify(droppedItems) === JSON.stringify(qData.correctOrder);
                 
                 checkButton.disabled = true;
-                card.querySelectorAll('.draggable').forEach(el => el.draggable = false);
+                card.querySelectorAll('.draggable').forEach(el => {
+                    el.draggable = false; 
+                    el.classList.remove('touch-dragging', 'dragging');
+                });
                 
                 const resultDiv = document.createElement('div');
                 resultDiv.className = 'p-4 mt-4 rounded-md';
